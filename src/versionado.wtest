@@ -1,0 +1,131 @@
+import versionado.*
+
+describe "Test de Versionado"{
+
+	const carpetaVacia = new Carpeta(nombre = "pdep")
+	const carpetaLlena = new Carpeta(nombre = "otra", archivos = [new Archivo(nombre = "parcial.wlk")])
+	
+	const commit1 = new Commit(
+		descripcion = "Commit inicial",
+		cambios = [new Crear(nombreArchivo = "leeme.md"),new Crear(nombreArchivo = "parcial.wlk"), new Agregar(nombreArchivo = "leeme.md",agregado = "Este es un parcial")]
+	)
+
+	const commit2 = new Commit(
+		descripcion = "Depuracion",
+		cambios = [new Eliminar(nombreArchivo = "parcial.wlk"),new Sacar(nombreArchivo = "leeme.md",sacado = "cial")]
+	)	
+	const commit3 = new Commit(
+		descripcion = "Se complicó",
+		cambios = [new Agregar(nombreArchivo = "leeme.md",agregado= "to")]
+	)	
+
+	const usuarioAdmin =new Usuario(permiso = administrador)
+	const usuario = new Usuario(permiso = comun)
+	const otroUsuario = new Usuario(permiso = comun)
+
+	var branchRevert 
+	var branchSimple 
+
+	fixture{
+		branchRevert = usuario.crearBranch()
+		usuario.commitear(commit1,branchRevert)
+		usuario.commitear(commit1.revert(),branchRevert)
+		branchSimple = usuario.crearBranch()
+		usuario.commitear(commit1, branchSimple)
+		usuario.commitear(commit2, branchSimple)
+		usuario.commitear(commit3, branchSimple)
+	}
+	
+	test "Se aplica satisfactoriamente commit a una carpeta" {
+		commit1.aplicarEn(carpetaVacia)
+		assert.that(carpetaVacia.contieneArchivo("leeme.md")) 
+		assert.that(carpetaVacia.contieneArchivo("parcial.wlk")) 
+		assert.equals("Este es un parcial", carpetaVacia.buscarArchivo("leeme.md").contenido())
+	}
+	
+	test "Tira error al aplicar commit en carpeta que ya tiene el archivo" {
+		assert.throwsExceptionLike(contieneArchivo, {commit1.aplicarEn(carpetaLlena)})
+	}
+	
+	test "Hacer checkout de branch con varios commits"{
+	
+		branchSimple.checkOutEn(carpetaVacia)
+		assert.equals("Este es un parto", carpetaVacia.buscarArchivo("leeme.md").contenido())
+		assert.notThat(carpetaVacia.contieneArchivo("parcial.wlk"))
+	}
+	
+
+	test "Los tres commits del branch forman parte del log " {
+		assert.equals([commit1,commit2,commit3],branchSimple.logDeArchivo("leeme.md"))
+	}
+
+	test "En el ultimo de los commits no se toco un archivo, y no esta en el log" {
+		assert.equals([commit1,commit2],branchSimple.logDeArchivo("parcial.wlk"))
+	}
+	
+	test "Hacer checkout de branch con commit y su revert y que la carpeta vuelva a quedar vacia"{
+	
+		branchRevert.checkOutEn(carpetaVacia)
+		assert.that(carpetaVacia.archivos().isEmpty())
+	}
+
+	test "Se produce un error cuando quiera commitear alguien que no es colaborador" {
+		assert.throwsExceptionLike(noTienePermisos, {otroUsuario.commitear(commit2,branchSimple)})
+
+	}
+	test "El administrador puede commitear en cualquier branch" {
+		usuarioAdmin.commitear(commit2,branchSimple)
+		assert.equals(commit2,branchSimple.commits().last())
+	}
+	
+	test "Un administrador puede poner como administrador a otros usuarios"	{
+		usuarioAdmin.convertirEnAdministradores([usuario,otroUsuario,usuarioAdmin])
+		assert.equals(administrador,usuario.permiso())
+		assert.equals(administrador,otroUsuario.permiso())
+		assert.equals(administrador,usuarioAdmin.permiso())
+	}
+	
+	test "Un usuario comun no puede poner como administrador a otros usuarios"	{
+		assert.throwsExceptionLike(noTienePermisos, {usuario.convertirEnAdministradores([usuario,otroUsuario,usuarioAdmin])})
+	}
+	
+	test "Un administrador puede quitar permiso de administrador a un administrador"	{
+		usuarioAdmin.quitarPermisoAdministrador(usuarioAdmin)
+		assert.equals(comun,usuarioAdmin.permiso())
+	}
+	
+	test "Un usuario comun no puede quitar permisos de administrador"	{
+		assert.throwsExceptionLike(noTienePermisos, {usuario.quitarPermisoAdministrador(usuarioAdmin)})
+	}
+	
+	test "libertadores" {
+		const marcelo = new Usuario()
+		const guillermo = new Usuario()
+		const gustavo = new Usuario()
+		const mauri = new Usuario(permiso = administrador)
+		const branch = marcelo.crearBranch()
+		marcelo.agregarColaboradorABranch(guillermo, branch)
+		marcelo.agregarColaboradorABranch(gustavo, branch)
+ 		guillermo.commitear(
+ 			new Commit(cambios = [new Crear(nombreArchivo = "Final"),new Agregar(nombreArchivo = "Final",agregado = "Boca 2")]),
+ 			branch)
+ 		guillermo.commitear(
+ 			new Commit(cambios = [new Agregar(nombreArchivo = "Final",agregado = " - River 0")]),
+ 			branch)
+		marcelo.commitear(
+ 			new Commit(cambios = [new Sacar(nombreArchivo = "Final",sacado= " 0"),new Agregar(nombreArchivo = "Final",agregado = "3")]),
+ 			branch)
+		mauri.commitear(
+			branch.commits().last().revert(),
+			branch)
+		gustavo.commitear(
+			new Commit(cambios = [new Crear(nombreArchivo = "recaudacion")]),
+			branch)
+		mauri.convertirEnAdministradores(branch.blameDeArchivo("Final")) 
+		marcelo.quitarPermisoAdministrador(mauri)
+		assert.throwsExceptionLike(noTienePermisos, {gustavo.convertirEnAdministradores([mauri])})
+		branch.checkOutEn(carpetaVacia)
+		assert.equals("Boca 2 - River 0", carpetaVacia.buscarArchivo("Final").contenido())
+	}
+	
+}
