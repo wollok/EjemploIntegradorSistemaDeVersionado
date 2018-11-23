@@ -53,11 +53,9 @@ class Commit{
 		cambios.forEach{cambio => cambio.realizarEn(carpeta)}
 	}
 	
-	method revert(){
-		return new Commit(
+	method revert() = new Commit(
 			descripcion = "Revert "+ descripcion,
 			cambios = cambios.map{cambio => cambio.revert()}.reverse())
-	}
 
 	method afectaArchivo(nombre){
 		return cambios.any{cambio=>cambio.nombreArchivo() == nombre}
