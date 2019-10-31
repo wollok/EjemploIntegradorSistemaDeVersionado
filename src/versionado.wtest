@@ -47,7 +47,7 @@ describe "Test de Versionado"{
 		assert.throwsExceptionLike(contieneArchivo, {commit1.aplicarEn(carpetaLlena)})
 	}
 	
-	test "Hacer checkout de branch con varios commits"{
+	test "Hacer checkout de branch con varios commits produce los cambios de todos los commits"{
 	
 		branchSimple.checkOutEn(carpetaVacia)
 		assert.equals("Este es un parto", carpetaVacia.buscarArchivo("leeme.md").contenido())
@@ -55,15 +55,15 @@ describe "Test de Versionado"{
 	}
 	
 
-	test "Los tres commits del branch forman parte del log " {
+	test "El log de una branch obtiene todos los commits afectados" {
 		assert.equals([commit1,commit2,commit3],branchSimple.logDeArchivo("leeme.md"))
 	}
 
-	test "En el ultimo de los commits no se toco un archivo, y no esta en el log" {
+	test "El log de una branch no devuelve el commit no afectado" {
 		assert.equals([commit1,commit2],branchSimple.logDeArchivo("parcial.wlk"))
 	}
 	
-	test "Hacer checkout de branch con commit y su revert y que la carpeta vuelva a quedar vacia"{
+	test "El revert de un commit deshace todos los cambios hechos por el commit original"{
 	
 		branchRevert.checkOutEn(carpetaVacia)
 		assert.that(carpetaVacia.archivos().isEmpty())
