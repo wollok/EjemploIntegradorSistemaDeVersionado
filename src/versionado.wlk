@@ -1,7 +1,7 @@
-object contieneArchivo inherits Exception("La carpeta ya contiene el archivo"){}
-object noContieneArchivo inherits Exception("La carpeta no contiene el archivo"){}
-object noSePuedeSacarContenido inherits Exception("No se puede sacar ese contenido del final del archivo"){}
-object noTienePermisos inherits Exception("El usuario no tiene permiso"){}
+class ContieneArchivo inherits Exception {}
+class NoContieneArchivo inherits Exception{}
+class NoSePuedeSacarContenido inherits Exception{}
+class NoTienePermisos inherits Exception{}
 
 class Carpeta{
 	var property archivos = []
@@ -40,7 +40,7 @@ class Archivo{
 
 	method validarContenido(sacado, posicion){
 		if (sacado != contenido.drop(posicion))
-			throw noSePuedeSacarContenido
+			throw new NoSePuedeSacarContenido(message="No se puede sacar ese contenido del final del archivo")
 	}
 }
 
@@ -72,7 +72,7 @@ class Cambio{
 
 	method validarRealizacion(carpeta){
     	if(!carpeta.contieneArchivo(nombreArchivo)) 
-    		throw noContieneArchivo
+    		throw new NoContieneArchivo(message= "La carpeta no contiene el archivo")
 	}
 
 	method realizarse(carpeta) 
@@ -82,7 +82,7 @@ class Crear inherits Cambio{
 	
 	override method validarRealizacion(carpeta){
     if(carpeta.contieneArchivo(nombreArchivo)) 
-    	throw contieneArchivo
+    	throw new ContieneArchivo(message = "La carpeta ya contiene el archivo")
 	}
 
 	override method realizarse(carpeta){
@@ -164,7 +164,7 @@ class Usuario{
 
 	method validarPermisos(branch){
 		if (!self.tienePermisosEn(branch)) 
-			throw noTienePermisos
+			throw new NoTienePermisos(message = "El usuario no tiene permiso") 
 	} 
 	
 	method tienePermisosEn(branch){
@@ -184,7 +184,7 @@ object comun {
 	method puedeModificar(usuario, branch) = branch.tieneColaborador(usuario)
 	
 	method darPermiso(usuario, permiso) {
-		throw noTienePermisos
+		throw new NoTienePermisos(message = "El usuario no tiene permiso") 
 	}
 }
 
